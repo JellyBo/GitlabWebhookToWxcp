@@ -22,14 +22,16 @@ public class WebhookListener implements WebHookListener {
         Collections.reverse(commits);
 
         StringBuilder content = new StringBuilder();
-        content.append(event.getUserName())
-                .append(" pushed to branch ")
+        content.append("**")
+                .append(event.getUserName())
+                .append("** 向仓库 <font color=\"info\">")
+                .append(event.getProject().getNamespace())
+                .append("</font>[").append(event.getProject().getName()).append("]")
+                .append("(").append(event.getProject().getWebUrl()).append(")")
+                .append(" 推送代码到分支 ")
                 .append("[").append(event.getBranch()).append("]")
                 .append("(").append(event.getProject().getWebUrl()).append("/tree/").append(event.getBranch()).append(")")
-                .append(" at repository ")
-                .append("[").append(event.getProject().getName()).append("]")
-                .append("(").append(event.getProject().getWebUrl()).append(")")
-                .append("\n");
+                .append("\n提交记录:\n");
 
         for (EventCommit commit : commits) {
             String shortId = commit.getId().substring(0, 6);
@@ -57,35 +59,42 @@ public class WebhookListener implements WebHookListener {
         String targetBranchUrl = event.getProject().getWebUrl() + "/tree/" + targetBranch;
         String state = event.getObjectAttributes().getState();
 
-        String action = "open";
+        String action = "创建";
         if (event.getChanges().getTitle() != null) {
-            action = "update";
+            action = "更新";
         }
         if (Objects.equals(state, "merged")) {
-            action = "merged";
+            action = "合并";
         }
         if (Objects.equals(state, "closed")) {
-            action = "close";
+            action = "关闭";
         }
 
-        content.append(event.getUser().getName())
-                .append(" ")
+        if ("创建".equals(action) || "更新".equals(action)) {
+            MDC.put("isNotice", "1");
+        }
+
+        content.append("**")
+                .append(event.getUser().getName())
+                .append("** 向仓库 <font color=\"info\">")
+                .append(event.getProject().getNamespace())
+                .append("</font>[").append(event.getProject().getName()).append("]")
+                .append("(").append(event.getProject().getWebUrl()).append(")")
+                .append(" 对合并请求进行了**")
                 .append(action)
-                .append(" the merge request from branch ")
+                .append("** 操作\n> 分支：从 ")
                 .append("[").append(sourceBranch).append("]")
                 .append("(").append(sourceBranchUrl).append(")")
-                .append(" to ")
+                .append(" 到 ")
                 .append("[").append(targetBranch).append("]")
                 .append("(").append(targetBranchUrl).append(")")
                 .append("\n")
                 .append("> ")
-                .append("[").append(event.getObjectAttributes().getTitle()).append("]")
-                .append("(").append(event.getObjectAttributes().getUrl()).append(")")
-                .append("\n")
-                .append("Status : ").append(state).append(" | ").append(event.getObjectAttributes().getMergeStatus()).append("\n")
-                .append("Repository : ")
-                .append("[").append(event.getProject().getName()).append("]")
-                .append("(").append(event.getProject().getWebUrl()).append(")");
+                .append("标题：").append(event.getObjectAttributes().getTitle())
+                .append("\n> 状态 : ").append(state).append(" | ").append(event.getObjectAttributes().getMergeStatus())
+                .append("\n> [链接](").append(event.getObjectAttributes().getUrl()).append(")：")
+                .append(event.getObjectAttributes().getUrl()
+                );
 
         GroupMsg.getInstance(botKey).sendMarkdownMsg(content.toString());
     }

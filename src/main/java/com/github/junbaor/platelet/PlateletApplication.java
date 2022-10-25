@@ -44,7 +44,10 @@ public class PlateletApplication implements InitializingBean {
     }
 
     @RequestMapping(value = "webhook/{key}")
-    public String webhook(@PathVariable("key") String key, @RequestParam(required = false, name = "noticeMembers") List<String> noticeMemberMobileList, HttpServletRequest request) {
+    public String webhook(@PathVariable("key") String key,
+                          @RequestParam(required = false, name = "noticeMembers") List<String> noticeMemberMobileList,
+                          @RequestParam(required = false, name = "branch") List<String> branchList,
+                          HttpServletRequest request) {
         if (StringUtils.isEmpty(key)) {
             return "error";
         }
@@ -53,6 +56,10 @@ public class PlateletApplication implements InitializingBean {
         MDC.put("key", key);
 
         try {
+            if (!CollectionUtils.isEmpty(branchList)) {
+                MDC.put("branchList", String.join(",", branchList));
+            }
+
             webHookManager.handleEvent(request);
             if ("1".equals(MDC.get("isNotice")) && !CollectionUtils.isEmpty(noticeMemberMobileList)) {
                 GroupMsg.getInstance(key).sendTextMsg("⬆️请处理 ", null, noticeMemberMobileList);

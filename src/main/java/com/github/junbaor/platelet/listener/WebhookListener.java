@@ -4,8 +4,10 @@ import com.github.junbaor.platelet.msg.GroupMsg;
 import lombok.extern.slf4j.Slf4j;
 import org.gitlab4j.api.webhook.*;
 import org.slf4j.MDC;
+import org.springframework.util.StringUtils;
 
 import javax.inject.Named;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +22,10 @@ public class WebhookListener implements WebHookListener {
 
         List<EventCommit> commits = event.getCommits();
         Collections.reverse(commits);
+
+        if (!checkTargetBranch(event.getBranch())) {
+            return;
+        }
 
         StringBuilder content = new StringBuilder();
         content.append("**")
@@ -59,20 +65,24 @@ public class WebhookListener implements WebHookListener {
         String targetBranchUrl = event.getProject().getWebUrl() + "/tree/" + targetBranch;
         String state = event.getObjectAttributes().getState();
 
+        if (!checkTargetBranch(targetBranch)) {
+            return;
+        }
+
         String action = "创建";
+        MDC.put("isNotice", "1");
         if (event.getChanges().getTitle() != null) {
             action = "更新";
         }
         if (Objects.equals(state, "merged")) {
             action = "合并";
+            MDC.put("isNotice", "0");
         }
         if (Objects.equals(state, "closed")) {
             action = "关闭";
+            MDC.put("isNotice", "0");
         }
 
-        if ("创建".equals(action) || "更新".equals(action)) {
-            MDC.put("isNotice", "1");
-        }
 
         content.append("**")
                 .append(event.getUser().getName())
@@ -82,7 +92,7 @@ public class WebhookListener implements WebHookListener {
                 .append("(").append(event.getProject().getWebUrl()).append(")")
                 .append(" 对合并请求进行了**")
                 .append(action)
-                .append("** 操作\n> 分支：从 ")
+                .append("**操作\n> 分支：从 ")
                 .append("[").append(sourceBranch).append("]")
                 .append("(").append(sourceBranchUrl).append(")")
                 .append(" 到 ")
@@ -120,5 +130,18 @@ public class WebhookListener implements WebHookListener {
                 .append("(").append(projectUrl).append(")");
 
         GroupMsg.getInstance(botKey).sendMarkdownMsg(content.toString());
+    }
+
+    private boolean checkTargetBranch(String branchName) {
+        String branchStr = MDC.get("branchList");
+        if (StringUtils.isEmpty(branchStr)) {
+            return true;
+        }
+
+        List<String> branchList = Arrays.asList(branchStr.split(","));
+        if (branchList.contains(branchName)) {
+            return true;
+        }
+        return false;
     }
 }

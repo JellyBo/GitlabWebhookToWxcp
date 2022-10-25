@@ -31,7 +31,9 @@ public class GroupMsg implements IGroupMsg {
         LinkedHashMap<Object, Object> hashMap = AppUtils.map(
                 "msgtype", "text",
                 "text", AppUtils.map(
-                        "content", content
+                        "content", content,
+                        "mentioned_list", mentionedList,
+                        "mentioned_mobile_list", mentionedMobileList
                 )
         );
         return sendHttpRequest(hashMap);

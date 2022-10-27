@@ -70,19 +70,18 @@ public class WebhookListener implements WebHookListener {
         }
 
         String action = "创建";
-        MDC.put("isNotice", "1");
+        boolean isNotice = true;
         if (event.getChanges().getTitle() != null) {
             action = "更新";
         }
         if (Objects.equals(state, "merged")) {
             action = "合并";
-            MDC.put("isNotice", "0");
+            isNotice = false;
         }
         if (Objects.equals(state, "closed")) {
             action = "关闭";
-            MDC.put("isNotice", "0");
+            isNotice = false;
         }
-
 
         content.append("**")
                 .append(event.getUser().getName())
@@ -107,6 +106,14 @@ public class WebhookListener implements WebHookListener {
                 );
 
         GroupMsg.getInstance(botKey).sendMarkdownMsg(content.toString());
+        if(isNotice) {
+            // 通知处理人
+            String noticeMemberMobileStr = MDC.get("noticeMemberMobileList");
+            if (!StringUtils.isEmpty(noticeMemberMobileStr)) {
+                List<String> noticeMemberMobileList = Arrays.asList(noticeMemberMobileStr.split(","));
+                GroupMsg.getInstance(botKey).sendTextMsg("⬆️请处理 ", null, noticeMemberMobileList);
+            }
+        }
     }
 
     @Override

@@ -52,21 +52,24 @@ public class PlateletApplication implements InitializingBean {
             return "error";
         }
 
-        // 把微信机器人的 key 放到上下文
-        MDC.put("key", key);
+
 
         try {
+            // 把微信机器人的 key 放到上下文
+            MDC.put("key", key);
             if (!CollectionUtils.isEmpty(branchList)) {
                 MDC.put("branchList", String.join(",", branchList));
             }
-
-            webHookManager.handleEvent(request);
-            if ("1".equals(MDC.get("isNotice")) && !CollectionUtils.isEmpty(noticeMemberMobileList)) {
-                GroupMsg.getInstance(key).sendTextMsg("⬆️请处理 ", null, noticeMemberMobileList);
+            if (!CollectionUtils.isEmpty(noticeMemberMobileList)) {
+                MDC.put("noticeMemberMobileList", String.join(",", noticeMemberMobileList));
             }
+            webHookManager.handleEvent(request);
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return "error";
+        } finally {
+            MDC.clear();
         }
         return "ok";
     }
